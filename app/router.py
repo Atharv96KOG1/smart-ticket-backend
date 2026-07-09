@@ -8,7 +8,12 @@ import logging
 
 from pydantic import ValidationError
 
-from app.guardrails import BlankTicketError, escalation_override, prepare_ticket_text
+from app.guardrails import (
+    BlankTicketError,
+    billing_priority_floor,
+    escalation_override,
+    prepare_ticket_text,
+)
 from app.llm import LLMAuthError, LLMConnectionError, LLMRateLimitError, call_llm
 from app.prompt import build_messages
 from app.schema import SAFE_FALLBACK, TicketRoute
@@ -53,9 +58,10 @@ def route_ticket(raw_text: str) -> TicketRoute:
             logger.warning("Attempt %d failed validation: %s", attempt + 1, retry_error)
             continue
 
-        escalated_priority = escalation_override(raw_text, route.priority.value)
-        if escalated_priority != route.priority.value:
-            route = route.model_copy(update={"priority": escalated_priority})
+        final_priority = billing_priority_floor(route.category.value, route.priority.value)
+        final_priority = escalation_override(raw_text, final_priority)
+        if final_priority != route.priority.value:
+            route = route.model_copy(update={"priority": final_priority})
         return route
 
     logger.error("Both attempts failed validation; returning safe fallback.")

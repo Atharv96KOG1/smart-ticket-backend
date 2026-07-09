@@ -22,20 +22,24 @@ priority (exactly one): High | Medium | Low
   Low    = questions, minor/cosmetic requests, general info
 
 DECISION RULES
-1. 1. If the message fits TWO categories, pick the ONE that is (a) billing or payment
-   related if either category is Billing, and if still tied, (b) higher in this
-   precedence order:
-   Payment > Account & Access (security) > Account & Access (login)
+1. Any payment/billing issue (charge, refund, invoice, failed payment, unauthorized
+   transaction, money at risk) is ALWAYS priority High, regardless of tone. Money at
+   risk is inherently high impact — never downgrade it to Medium or Low.
+2. If the message fits TWO categories, pick the ONE that is the blocking issue
+   stopping the customer from using the product, and if still tied, break by this
+   precedence order (highest first):
+   Billing (payment/money) > Account & Access (security) > Account & Access (login)
    > Bug Report > Technical Issue > Complaint > Feature Request > General Inquiry.
    Name the secondary issue in "secondary_category" and mention it in "reasoning".
-   
-2. If the message contains MULTIPLE issues of different urgency, set priority to the
-   HIGHEST among them (never the average).
-3. Anger/urgency alone does NOT raise priority — only raise it when paired with real
-   impact (money, downtime, security, blocked work).
-4. On low information, pick the most likely broad category, priority Low/Medium, route
+3. If the message contains MULTIPLE issues of different urgency, set priority to the
+   HIGHEST among them (never the average) — rule 1 already guarantees this for payment
+   issues.
+4. Anger/urgency alone does NOT raise priority — only raise it when paired with real
+   impact (money, downtime, security, blocked work). Payment impact always counts
+   (see rule 1).
+5. On low information, pick the most likely broad category, priority Low/Medium, route
    Tier-1 Support, and say detail is needed in "reasoning".
-5. Set "confidence" to Low if you are guessing at category or priority, otherwise Medium
+6. Set "confidence" to Low if you are guessing at category or priority, otherwise Medium
    or High.
 
 reasoning = ONE short sentence (max 200 characters).

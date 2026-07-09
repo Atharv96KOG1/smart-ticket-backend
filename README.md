@@ -38,16 +38,20 @@ rule — is ordinary code wrapping that one unreliable call.
 
 ### Decision rules baked into the prompt
 
+- **Payment/billing issue? Always High.** Charges, refunds, failed payments,
+  unauthorized transactions — money at risk is never downgraded to Medium or Low,
+  regardless of tone. This is rule 1, checked before anything else.
 - **Two categories fit?** Route by blocking root cause, then a fixed precedence
-  order (security > billing > access > bug > technical > complaint > feature >
-  general). The loser goes in `secondary_category`, never discarded.
+  order: billing (payment) > security access > login access > bug > technical >
+  complaint > feature > general. The loser goes in `secondary_category`, never
+  discarded.
 - **Multiple issues, different urgency?** Priority = the **highest**, never the
   average — under-prioritizing a real High ticket is far costlier than
   over-prioritizing a Low one.
 - **Anger alone doesn't raise priority** — only impact does (money, downtime,
   security, blocked work). A small deterministic post-rule in `guardrails.py` can
-  only *raise* priority on hard signals ("charged twice", "data loss", ...),
-  never lower it — a safety net over the model.
+  only *raise* priority on hard signals (payment/refund language, "data loss",
+  "suspicious login", ...), never lower it — a safety net over the model.
 
 ## Setup
 
@@ -116,3 +120,9 @@ smart_ticket_router/
 ├── .env.example
 └── requirements.txt
 ```
+
+
+
+cd /Users/atharv.muchandi/Smart_ticket
+source .venv/bin/activate
+python cli.py route

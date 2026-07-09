@@ -51,12 +51,19 @@ def prepare_ticket_text(raw: str, max_chars: int = MAX_TICKET_CHARS) -> tuple[st
     return cleaned, truncated
 
 
-# Deterministic escalation-only rule (§8.3): can only RAISE priority, never lower it,
-# and only on hard signals — never on tone alone.
+# Deterministic escalation-only rule: can only RAISE priority, never lower it,
+# and only on hard signals — never on tone alone. Payment/billing signals are
+# listed first since any money-at-risk issue is always High.
 _ESCALATION_SIGNALS = (
     "charged twice",
     "double charged",
     "double-charged",
+    "overcharged",
+    "unauthorized charge",
+    "unauthorized transaction",
+    "payment failed",
+    "refund",
+    "money left my account",
     "can't log in",
     "cannot log in",
     "can't access my account",
@@ -65,7 +72,6 @@ _ESCALATION_SIGNALS = (
     "breach",
     "security breach",
     "suspicious login",
-    "money left my account",
     "unauthorized",
 )
 
@@ -74,5 +80,14 @@ def escalation_override(ticket_text: str, priority: str) -> str:
     """If the raw text contains a hard-impact signal, force priority to High."""
     lowered = ticket_text.lower()
     if priority != "High" and any(sig in lowered for sig in _ESCALATION_SIGNALS):
+        return "High"
+    return priority
+
+
+def billing_priority_floor(category: str, priority: str) -> str:
+    """Any Billing-categorized ticket is always High — a deterministic guarantee,
+    not just a prompt instruction the model might not follow every time.
+    """
+    if category == "Billing":
         return "High"
     return priority
