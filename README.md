@@ -120,9 +120,3 @@ smart_ticket_router/
 ├── .env.example
 └── requirements.txt
 ```
-
-
-
-cd /Users/atharv.muchandi/Smart_ticket
-source .venv/bin/activate
-python cli.py route
