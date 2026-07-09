@@ -1,0 +1,118 @@
+# Smart Ticket Router
+
+Reads a raw support message and returns a validated, schema-conformant routing
+decision — category, priority, assigned team, one-line reasoning — with
+deterministic tie-breaking and a defense-in-depth reliability layer around the LLM
+call.
+
+```json
+{
+  "category": "Billing",
+  "priority": "High",
+  "assigned_team": "Billing Team",
+  "reasoning": "Customer was double-charged and requests an urgent refund."
+}
+```
+
+## Stack
+
+FastAPI · Pydantic (the JSON-schema/validation layer) · OpenAI (GPT) · a Rich-powered CLI.
+
+## Architecture
+
+```
+CLI (cli.py) ──┬─▶ app/router.py  (direct import, no server needed)
+               └─▶ FastAPI /route (--api flag) ──▶ app/router.py
+
+app/router.py:
+  guardrails.py  → strip quoted threads, head/tail trim, reject blank
+  prompt.py      → system prompt + few-shot examples + decision rules
+  llm.py         → OpenAI call, temperature=0, auth/rate-limit/timeout handling
+  schema.py      → Pydantic contract (category/priority/team enums)
+  router.py      → parse → validate → retry-once → safe fallback
+```
+
+The LLM is the only unreliable step. Everything else — guardrails, JSON parsing,
+Pydantic validation, retry, fallback, the deterministic escalation-only priority
+rule — is ordinary code wrapping that one unreliable call.
+
+### Decision rules baked into the prompt
+
+- **Two categories fit?** Route by blocking root cause, then a fixed precedence
+  order (security > billing > access > bug > technical > complaint > feature >
+  general). The loser goes in `secondary_category`, never discarded.
+- **Multiple issues, different urgency?** Priority = the **highest**, never the
+  average — under-prioritizing a real High ticket is far costlier than
+  over-prioritizing a Low one.
+- **Anger alone doesn't raise priority** — only impact does (money, downtime,
+  security, blocked work). A small deterministic post-rule in `guardrails.py` can
+  only *raise* priority on hard signals ("charged twice", "data loss", ...),
+  never lower it — a safety net over the model.
+
+## Setup
+
+```bash
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+
+cp .env.example .env
+# edit .env and paste your real OPENAI_API_KEY
+```
+
+## Run it
+
+**CLI, no server needed** (imports the router directly):
+
+```bash
+python cli.py route          # interactively route one ticket
+python cli.py demo           # batch-route the 20 sample tickets + timing
+```
+
+**FastAPI server**, for the same CLI to hit over HTTP, or any other client:
+
+```bash
+uvicorn app.main:app --reload
+# in another terminal:
+python cli.py route --api
+python cli.py demo --api
+curl -X POST localhost:8000/route -H "content-type: application/json" \
+     -d '{"message": "I was charged twice this month, refund me now!"}'
+```
+
+Interactive API docs: `http://127.0.0.1:8000/docs`
+
+## Reliability guarantee
+
+The caller always gets a schema-valid `TicketRoute` — either a real classification
+or the documented safe fallback (`General Inquiry` / `Medium` / `Tier-1 Support`,
+flagged low-confidence for human review). Malformed JSON from the model never
+reaches the caller.
+
+## Edge cases covered
+
+| Case | Where |
+|---|---|
+| Blank input | Rejected client-side in the CLI before any call is made; server re-checks too |
+| Oversized message | `guardrails.py` strips quoted email threads, then keeps head+tail (never blind-truncates) |
+| Ambiguous / two categories | Prompt precedence rule + `secondary_category` field |
+| Multi-issue priority | Prompt take-the-highest rule |
+| Angry tone, no real impact | Prompt rule 3 — tone alone never raises priority |
+| Bad API key / rate limit / network drop | `llm.py` raises typed errors → clean HTTP status / CLI message, never a crash |
+
+## Repo layout
+
+```
+smart_ticket_router/
+├── app/
+│   ├── main.py        FastAPI app
+│   ├── router.py       core pipeline
+│   ├── schema.py        Pydantic contract
+│   ├── prompt.py         system prompt + few-shot
+│   ├── guardrails.py      length/thread/escalation rules
+│   └── llm.py              OpenAI client wrapper
+├── cli.py               CLI (direct or --api mode)
+├── data/sample_tickets.json   20-ticket demo set
+├── .env.example
+└── requirements.txt
+```

@@ -1,0 +1,22 @@
+[
+  {"text": "I was charged twice this month, refund me now!", "expected_category": "Billing", "expected_priority": "High", "expected_team": "Billing Team"},
+  {"text": "How do I change my email address?", "expected_category": "Account & Access", "expected_priority": "Low", "expected_team": "Tier-1 Support"},
+  {"text": "The whole app is down, none of my team can log in!!", "expected_category": "Technical Issue", "expected_priority": "High", "expected_team": "Technical Support"},
+  {"text": "Could you add a dark mode?", "expected_category": "Feature Request", "expected_priority": "Low", "expected_team": "Customer Success"},
+  {"text": "it's not working", "expected_category": "Technical Issue", "expected_priority": "Medium", "expected_team": "Tier-1 Support"},
+  {"text": "THIRD time I've contacted you and NOBODY helps!!", "expected_category": "Complaint", "expected_priority": "High", "expected_team": "Customer Success"},
+  {"text": "My invoice shows the wrong VAT amount.", "expected_category": "Billing", "expected_priority": "Medium", "expected_team": "Billing Team"},
+  {"text": "Export button crashes the page every time.", "expected_category": "Bug Report", "expected_priority": "Medium", "expected_team": "Engineering"},
+  {"text": "Forgot my password and the reset email never arrives.", "expected_category": "Account & Access", "expected_priority": "Medium", "expected_team": "Account Management"},
+  {"text": "What are your business hours?", "expected_category": "General Inquiry", "expected_priority": "Low", "expected_team": "Tier-1 Support"},
+  {"text": "Payment failed but money left my account.", "expected_category": "Billing", "expected_priority": "High", "expected_team": "Billing Team"},
+  {"text": "can't login AND billing looks wrong", "expected_category": "Account & Access", "expected_priority": "High", "expected_team": "Account Management"},
+  {"text": "App is slow after the latest update.", "expected_category": "Technical Issue", "expected_priority": "Medium", "expected_team": "Technical Support"},
+  {"text": "I love the new dashboard, great work!", "expected_category": "General Inquiry", "expected_priority": "Low", "expected_team": "Customer Success"},
+  {"text": "Data from yesterday is missing from my reports.", "expected_category": "Bug Report", "expected_priority": "High", "expected_team": "Engineering"},
+  {"text": "Please cancel my subscription immediately.", "expected_category": "Billing", "expected_priority": "Medium", "expected_team": "Billing Team"},
+  {"text": "Is there an API for your product?", "expected_category": "General Inquiry", "expected_priority": "Low", "expected_team": "Tier-1 Support"},
+  {"text": "Suspicious login from another country on my account.", "expected_category": "Account & Access", "expected_priority": "High", "expected_team": "Account Management"},
+  {"text": "Bonjour, je ne peux pas accéder à mon compte.", "expected_category": "Account & Access", "expected_priority": "Medium", "expected_team": "Account Management"},
+  {"text": "", "expected_category": null, "expected_priority": null, "expected_team": "Never reaches API (blocked at input)"}
+]
