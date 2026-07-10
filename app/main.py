@@ -6,7 +6,12 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
+import os
+from pathlib import Path
+
 from fastapi import FastAPI, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
 from app.guardrails import BlankTicketError
@@ -18,6 +23,19 @@ app = FastAPI(
     title="Smart Ticket Router",
     description="Reads a raw support message and returns a validated routing decision.",
     version="1.0.0",
+)
+
+# The frontend is a separate app/repo served from its own origin, so it needs
+# CORS. ALLOWED_ORIGINS is a comma-separated list; defaults cover local dev.
+_allowed_origins = os.environ.get(
+    "ALLOWED_ORIGINS", "http://localhost:3000,http://127.0.0.1:3000,http://localhost:5173,http://127.0.0.1:5173"
+).split(",")
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=_allowed_origins,
+    allow_methods=["GET", "POST"],
+    allow_headers=["*"],
 )
 
 
@@ -42,3 +60,7 @@ def route(payload: RouteRequest) -> TicketRoute:
         raise HTTPException(status_code=429, detail=str(e))
     except LLMConnectionError as e:
         raise HTTPException(status_code=503, detail=str(e))
+
+
+ROOT_DIR = Path(__file__).resolve().parent.parent
+app.mount("/data", StaticFiles(directory=ROOT_DIR / "data"), name="data")
