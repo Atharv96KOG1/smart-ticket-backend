@@ -30,7 +30,10 @@ DECISION RULES
    precedence order (highest first):
    Billing (payment/money) > Account & Access (security) > Account & Access (login)
    > Bug Report > Technical Issue > Complaint > Feature Request > General Inquiry.
-   Name the secondary issue in "secondary_category" and mention it in "reasoning".
+   Name the secondary issue in "secondary_category", give it its OWN priority in
+   "secondary_priority" (the priority that issue would get if it were the only one
+   in the message, using the same High/Medium/Low rule above), and mention it in
+   "reasoning".
 3. If the message contains MULTIPLE issues of different urgency, set priority to the
    HIGHEST among them (never the average) — rule 1 already guarantees this for payment
    issues.
@@ -44,32 +47,41 @@ DECISION RULES
 
 reasoning = ONE short sentence (max 200 characters).
 
-Output shape (all fields required except secondary_category/confidence which are optional):
-{"category":"...","priority":"...","assigned_team":"...","reasoning":"...","secondary_category":null,"confidence":"..."}
+Output shape (all fields required except secondary_category/secondary_priority/confidence,
+which are optional and must be null when there is no secondary issue):
+{"category":"...","priority":"...","assigned_team":"...","reasoning":"...","secondary_category":null,"secondary_priority":null,"confidence":"..."}
 """
 
 FEW_SHOT_EXAMPLES = [
     (
         "I was charged twice this month, fix it now!",
         '{"category":"Billing","priority":"High","assigned_team":"Billing Team",'
-        '"reasoning":"Duplicate charge with urgency; needs a refund.","secondary_category":null,"confidence":"High"}',
+        '"reasoning":"Duplicate charge with urgency; needs a refund.","secondary_category":null,'
+        '"secondary_priority":null,"confidence":"High"}',
     ),
     (
         "can't log in AND my invoice looks wrong",
         '{"category":"Account & Access","priority":"High","assigned_team":"Account Management",'
         '"reasoning":"Login block is the root cause and outranks billing; secondary billing issue noted.",'
-        '"secondary_category":"Billing","confidence":"High"}',
+        '"secondary_category":"Billing","secondary_priority":"Medium","confidence":"High"}',
     ),
     (
         "it's not working",
         '{"category":"Technical Issue","priority":"Medium","assigned_team":"Tier-1 Support",'
-        '"reasoning":"Vague fault report; routed to Tier-1 to gather detail.","secondary_category":null,"confidence":"Low"}',
+        '"reasoning":"Vague fault report; routed to Tier-1 to gather detail.","secondary_category":null,'
+        '"secondary_priority":null,"confidence":"Low"}',
     ),
     (
         "THIRD time I've contacted you and NOBODY helps!!",
         '{"category":"Complaint","priority":"High","assigned_team":"Customer Success",'
         '"reasoning":"Repeated unresolved contact signals real service failure, not just tone.",'
-        '"secondary_category":null,"confidence":"Medium"}',
+        '"secondary_category":null,"secondary_priority":null,"confidence":"Medium"}',
+    ),
+    (
+        "payment failed 3-4 times and also facing networking issue",
+        '{"category":"Billing","priority":"High","assigned_team":"Billing Team",'
+        '"reasoning":"Repeated payment failures are money at risk; networking issue is secondary.",'
+        '"secondary_category":"Technical Issue","secondary_priority":"Medium","confidence":"High"}',
     ),
 ]
 

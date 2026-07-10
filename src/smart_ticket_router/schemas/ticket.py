@@ -40,6 +40,7 @@ class TicketRoute(BaseModel):
     assigned_team: Team
     reasoning: str = Field(max_length=200)
     secondary_category: Category | None = None
+    secondary_priority: Priority | None = None
     confidence: Confidence | None = None
 
     model_config = {"extra": "forbid"}
