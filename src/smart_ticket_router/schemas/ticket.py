@@ -34,13 +34,19 @@ class Confidence(str, Enum):
     LOW = "Low"
 
 
+class OtherIssue(BaseModel):
+    category: Category
+    priority: Priority
+
+    model_config = {"extra": "forbid"}
+
+
 class TicketRoute(BaseModel):
     category: Category
     priority: Priority
     assigned_team: Team
     reasoning: str = Field(max_length=200)
-    secondary_category: Category | None = None
-    secondary_priority: Priority | None = None
+    other_issues: list[OtherIssue] = Field(default_factory=list)
     confidence: Confidence | None = None
 
     model_config = {"extra": "forbid"}

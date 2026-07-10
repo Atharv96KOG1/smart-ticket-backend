@@ -25,15 +25,15 @@ DECISION RULES
 1. Any payment/billing issue (charge, refund, invoice, failed payment, unauthorized
    transaction, money at risk) is ALWAYS priority High, regardless of tone. Money at
    risk is inherently high impact — never downgrade it to Medium or Low.
-2. If the message fits TWO categories, pick the ONE that is the blocking issue
-   stopping the customer from using the product, and if still tied, break by this
-   precedence order (highest first):
+2. If the message fits MULTIPLE categories, pick the primary one as the blocking
+   issue stopping the customer from using the product, and if still tied, break by
+   this precedence order (highest first):
    Billing (payment/money) > Account & Access (security) > Account & Access (login)
    > Bug Report > Technical Issue > Complaint > Feature Request > General Inquiry.
-   Name the secondary issue in "secondary_category", give it its OWN priority in
-   "secondary_priority" (the priority that issue would get if it were the only one
-   in the message, using the same High/Medium/Low rule above), and mention it in
-   "reasoning".
+   List EVERY other distinct issue in "other_issues" as its own {"category","priority"}
+   object — priority is what THAT issue would get on its own, using the same
+   High/Medium/Low rule above. Order "other_issues" by priority, highest first.
+   Mention each one briefly in "reasoning".
 3. If the message contains MULTIPLE issues of different urgency, set priority to the
    HIGHEST among them (never the average) — rule 1 already guarantees this for payment
    issues.
@@ -47,41 +47,50 @@ DECISION RULES
 
 reasoning = ONE short sentence (max 200 characters).
 
-Output shape (all fields required except secondary_category/secondary_priority/confidence,
-which are optional and must be null when there is no secondary issue):
-{"category":"...","priority":"...","assigned_team":"...","reasoning":"...","secondary_category":null,"secondary_priority":null,"confidence":"..."}
+Output shape (all fields required except other_issues/confidence; other_issues must
+be [] when there is no other issue):
+{"category":"...","priority":"...","assigned_team":"...","reasoning":"...","other_issues":[],"confidence":"..."}
+
+other_issues example with one extra issue:
+{"category":"Billing","priority":"High","assigned_team":"Billing Team","reasoning":"...",
+ "other_issues":[{"category":"Technical Issue","priority":"Medium"}],"confidence":"High"}
 """
 
 FEW_SHOT_EXAMPLES = [
     (
         "I was charged twice this month, fix it now!",
         '{"category":"Billing","priority":"High","assigned_team":"Billing Team",'
-        '"reasoning":"Duplicate charge with urgency; needs a refund.","secondary_category":null,'
-        '"secondary_priority":null,"confidence":"High"}',
+        '"reasoning":"Duplicate charge with urgency; needs a refund.","other_issues":[],"confidence":"High"}',
     ),
     (
         "can't log in AND my invoice looks wrong",
         '{"category":"Account & Access","priority":"High","assigned_team":"Account Management",'
         '"reasoning":"Login block is the root cause and outranks billing; secondary billing issue noted.",'
-        '"secondary_category":"Billing","secondary_priority":"Medium","confidence":"High"}',
+        '"other_issues":[{"category":"Billing","priority":"Medium"}],"confidence":"High"}',
     ),
     (
         "it's not working",
         '{"category":"Technical Issue","priority":"Medium","assigned_team":"Tier-1 Support",'
-        '"reasoning":"Vague fault report; routed to Tier-1 to gather detail.","secondary_category":null,'
-        '"secondary_priority":null,"confidence":"Low"}',
+        '"reasoning":"Vague fault report; routed to Tier-1 to gather detail.","other_issues":[],"confidence":"Low"}',
     ),
     (
         "THIRD time I've contacted you and NOBODY helps!!",
         '{"category":"Complaint","priority":"High","assigned_team":"Customer Success",'
         '"reasoning":"Repeated unresolved contact signals real service failure, not just tone.",'
-        '"secondary_category":null,"secondary_priority":null,"confidence":"Medium"}',
+        '"other_issues":[],"confidence":"Medium"}',
     ),
     (
         "payment failed 3-4 times and also facing networking issue",
         '{"category":"Billing","priority":"High","assigned_team":"Billing Team",'
         '"reasoning":"Repeated payment failures are money at risk; networking issue is secondary.",'
-        '"secondary_category":"Technical Issue","secondary_priority":"Medium","confidence":"High"}',
+        '"other_issues":[{"category":"Technical Issue","priority":"Medium"}],"confidence":"High"}',
+    ),
+    (
+        "payment failed multiple times, can't log in either, and the app keeps crashing",
+        '{"category":"Billing","priority":"High","assigned_team":"Billing Team",'
+        '"reasoning":"Payment failure is money at risk; login and crash issues also affect the customer.",'
+        '"other_issues":[{"category":"Account & Access","priority":"High"},'
+        '{"category":"Bug Report","priority":"Medium"}],"confidence":"High"}',
     ),
 ]
 

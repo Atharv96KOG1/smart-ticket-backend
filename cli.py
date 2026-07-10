@@ -47,8 +47,12 @@ def render_result(ticket_text: str, result: dict, elapsed: float) -> None:
         f"[bold]Assigned team:[/bold] {result.get('assigned_team')}\n"
         f"[bold]Reasoning:[/bold]     {result.get('reasoning')}"
     )
-    if result.get("secondary_category"):
-        body += f"\n[bold]Secondary:[/bold]      {result['secondary_category']}"
+    for issue in result.get("other_issues") or []:
+        issue_color = PRIORITY_COLOR.get(issue.get("priority"), "white")
+        body += (
+            f"\n[bold]Other issue:[/bold]    {issue.get('category')} "
+            f"[{issue_color}]({issue.get('priority')})[/{issue_color}]"
+        )
     if result.get("confidence"):
         body += f"\n[bold]Confidence:[/bold]     {result['confidence']}"
 
