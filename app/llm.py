@@ -1,9 +1,3 @@
-"""Thin wrapper around the OpenAI client. Temperature 0 for near-deterministic
-classification, JSON mode enabled as the cheapest reliability layer (constrain at
-the source, per §6). All provider-specific error handling lives here so router.py
-only has to deal with our own exception types.
-"""
-
 import os
 import time
 
