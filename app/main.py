@@ -1,7 +1,3 @@
-"""FastAPI server. The LLM key is read from the environment here and never sent
-to any client — the client only ever sees the validated JSON result.
-"""
-
 from dotenv import load_dotenv
 
 load_dotenv()
