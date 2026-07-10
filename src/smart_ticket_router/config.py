@@ -1,8 +1,3 @@
-"""Centralized environment configuration. Nothing here does I/O beyond reading
-env vars — read once at import time so the rest of the app treats these as
-plain constants.
-"""
-
 import os
 
 OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY")

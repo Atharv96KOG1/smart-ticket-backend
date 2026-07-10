@@ -1,8 +1,3 @@
-"""Core reliability pipeline: guardrails -> prompt -> LLM -> parse -> validate ->
-retry -> fallback. The LLM call is the only unreliable step; everything else here is
-ordinary deterministic code wrapping it.
-"""
-
 import json
 import logging
 

@@ -1,9 +1,3 @@
-"""Thin wrapper around the OpenAI client. Temperature 0 for near-deterministic
-classification, JSON mode enabled as the cheapest reliability layer (constrain at
-the source). Retries transient failures — including rate limits — with backoff;
-auth failures are never retried since waiting won't fix a bad key.
-"""
-
 import time
 
 import openai

@@ -1,5 +1,3 @@
-"""The output contract. Every response from the router must satisfy this shape."""
-
 from enum import Enum
 
 from pydantic import BaseModel, Field

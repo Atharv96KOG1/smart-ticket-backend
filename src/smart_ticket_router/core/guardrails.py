@@ -1,8 +1,3 @@
-"""Defense-in-depth for oversized/blank input. Never blind-truncate — the customer's
-actual ask can be anywhere in a long paste, so we strip quoted threads first and, if
-still over budget, keep head+tail rather than the middle.
-"""
-
 import re
 
 from smart_ticket_router.config import MAX_TICKET_CHARS
