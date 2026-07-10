@@ -1,16 +1,3 @@
-#!/usr/bin/env python3
-"""Smart Ticket Router CLI.
-
-Two ways to run it:
-  python cli.py route                 interactive single-ticket routing, direct (no server needed)
-  python cli.py route --api           same, but calls a running FastAPI server at --url
-  python cli.py demo                  batch-routes the 20 sample tickets + before/after timing
-  python cli.py demo --api            same, via the FastAPI server
-
-This mirrors the frontend guard from the design doc: blank input is rejected right
-here, before any network/LLM call is ever made.
-"""
-
 import argparse
 import json
 import sys
