@@ -21,15 +21,16 @@ FastAPI · Pydantic (the JSON-schema/validation layer) · OpenAI (GPT) · a Rich
 ## Architecture
 
 ```
-CLI (cli.py) ──┬─▶ app/router.py  (direct import, no server needed)
-               └─▶ FastAPI /route (--api flag) ──▶ app/router.py
+CLI (cli.py) ──┬─▶ core/router.py  (direct import, no server needed)
+               └─▶ FastAPI /route (--api flag) ──▶ api/routes.py ──▶ core/router.py
 
-app/router.py:
-  guardrails.py  → strip quoted threads, head/tail trim, reject blank
-  prompt.py      → system prompt + few-shot examples + decision rules
-  llm.py         → OpenAI call, temperature=0, auth/rate-limit/timeout handling
-  schema.py      → Pydantic contract (category/priority/team enums)
-  router.py      → parse → validate → retry-once → safe fallback
+core/router.py:
+  core/guardrails.py  → strip quoted threads, head/tail trim, reject blank
+  core/prompt.py      → system prompt + few-shot examples + decision rules
+  llm/client.py       → OpenAI call, temperature=0, retries rate-limits/timeouts with backoff
+  llm/exceptions.py   → typed provider errors (auth/rate-limit/connection)
+  schemas/ticket.py   → Pydantic contract (category/priority/team enums)
+  router.py           → parse → validate → retry-once → safe fallback
 ```
 
 The LLM is the only unreliable step. Everything else — guardrails, JSON parsing,
@@ -76,7 +77,7 @@ python cli.py demo           # batch-route the 20 sample tickets + timing
 **FastAPI server**, for the same CLI to hit over HTTP, or any other client:
 
 ```bash
-uvicorn app.main:app --reload
+uvicorn smart_ticket_router.main:app --reload --app-dir src
 # in another terminal:
 python cli.py route --api
 python cli.py demo --api
@@ -110,20 +111,30 @@ reaches the caller.
 | Ambiguous / two categories | Prompt precedence rule + `secondary_category` field |
 | Multi-issue priority | Prompt take-the-highest rule |
 | Angry tone, no real impact | Prompt rule 3 — tone alone never raises priority |
-| Bad API key / rate limit / network drop | `llm.py` raises typed errors → clean HTTP status / CLI message, never a crash |
+| Bad API key / rate limit / network drop | `llm/client.py` raises typed errors → clean HTTP status / CLI message, never a crash |
+| Rate limit hit mid-request | Retried with exponential backoff (respecting `Retry-After` if provided) before surfacing a 429 |
 
 ## Repo layout
 
 ```
-smart_ticket_router/
-├── app/
-│   ├── main.py        FastAPI app
-│   ├── router.py       core pipeline
-│   ├── schema.py        Pydantic contract
-│   ├── prompt.py         system prompt + few-shot
-│   ├── guardrails.py      length/thread/escalation rules
-│   └── llm.py              OpenAI client wrapper
-├── cli.py               CLI (direct or --api mode)
+backend/
+├── src/
+│   └── smart_ticket_router/
+│       ├── main.py            FastAPI app factory (CORS, static /data mount, router wiring)
+│       ├── config.py          env-based settings (model, char limits, allowed origins)
+│       ├── api/
+│       │   └── routes.py      /health, /route endpoints
+│       ├── core/
+│       │   ├── router.py      parse → validate → retry-once → safe fallback pipeline
+│       │   ├── prompt.py      system prompt + few-shot examples
+│       │   └── guardrails.py  length/thread-strip/escalation rules
+│       ├── llm/
+│       │   ├── client.py      OpenAI client wrapper, retry + backoff
+│       │   └── exceptions.py  typed provider errors
+│       └── schemas/
+│           ├── ticket.py       Pydantic contract (category/priority/team enums)
+│           └── requests.py     API request body
+├── cli.py                     CLI (direct or --api mode)
 ├── data/sample_tickets.json   20-ticket demo set
 ├── .env.example
 └── requirements.txt

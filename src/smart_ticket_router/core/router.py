@@ -8,15 +8,20 @@ import logging
 
 from pydantic import ValidationError
 
-from app.guardrails import (
+from smart_ticket_router.core.guardrails import (
     BlankTicketError,
     billing_priority_floor,
     escalation_override,
     prepare_ticket_text,
 )
-from app.llm import LLMAuthError, LLMConnectionError, LLMRateLimitError, call_llm
-from app.prompt import build_messages
-from app.schema import SAFE_FALLBACK, TicketRoute
+from smart_ticket_router.core.prompt import build_messages
+from smart_ticket_router.llm.client import call_llm
+from smart_ticket_router.llm.exceptions import (
+    LLMAuthError,
+    LLMConnectionError,
+    LLMRateLimitError,
+)
+from smart_ticket_router.schemas.ticket import SAFE_FALLBACK, TicketRoute
 
 logger = logging.getLogger("smart_ticket_router")
 

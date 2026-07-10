@@ -3,10 +3,9 @@ actual ask can be anywhere in a long paste, so we strip quoted threads first and
 still over budget, keep head+tail rather than the middle.
 """
 
-import os
 import re
 
-MAX_TICKET_CHARS = int(os.environ.get("MAX_TICKET_CHARS", "2000"))
+from smart_ticket_router.config import MAX_TICKET_CHARS
 
 _QUOTE_LINE = re.compile(r"^\s*>.*$", re.MULTILINE)
 _REPLY_HEADER = re.compile(

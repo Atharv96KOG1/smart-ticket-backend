@@ -23,6 +23,8 @@ from rich.console import Console
 from rich.panel import Panel
 from rich.table import Table
 
+sys.path.insert(0, str(Path(__file__).parent / "src"))
+
 load_dotenv()
 
 console = Console()
@@ -35,7 +37,7 @@ PRIORITY_COLOR = {"High": "bold red", "Medium": "yellow", "Low": "green"}
 
 def route_direct(text: str) -> dict:
     """Import the router in-process — no server required."""
-    from app.router import route_ticket
+    from smart_ticket_router.core.router import route_ticket
 
     result = route_ticket(text)
     return result.model_dump(mode="json", exclude_none=True)
