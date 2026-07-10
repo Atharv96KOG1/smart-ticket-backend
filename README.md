@@ -86,6 +86,14 @@ curl -X POST localhost:8000/route -H "content-type: application/json" \
 
 Interactive API docs: `http://127.0.0.1:8000/docs`
 
+## Frontend
+
+The web UI lives in a separate repo (`smart-ticket-frontend`) and talks to this
+API over HTTP. CORS is enabled via `CORSMiddleware`; allowed origins default to
+common local dev ports (`localhost:3000`, `localhost:5173`) and can be
+overridden with the `ALLOWED_ORIGINS` env var (comma-separated). `GET /data`
+serves `data/sample_tickets.json` for the frontend's sample-ticket picker.
+
 ## Reliability guarantee
 
 The caller always gets a schema-valid `TicketRoute` — either a real classification
