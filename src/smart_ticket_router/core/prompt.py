@@ -13,7 +13,13 @@ markdown, no code fences.
 Each issue object has:
   id            sequential integer starting at 1, in the order defined by rule 2 below
   category      choose exactly one: Billing, Technical Issue, Account & Access, Bug Report,
-                Feature Request, Complaint, General Inquiry
+                Feature Request, Complaint, General Inquiry, Out of Scope
+                — General Inquiry = a genuine but vague/low-detail question ABOUT this
+                  product/account/service (hours, how-to, "is there an API").
+                — Out of Scope = the message is NOT a support request at all: random
+                  characters/numbers with no discernible meaning, or a real question that
+                  has nothing to do with this product/account/service (general knowledge,
+                  trivia, unrelated topics). Never guess a real category for these.
   assigned_team choose exactly one: Billing Team, Technical Support, Account Management,
                 Engineering, Customer Success, Tier-1 Support
   priority      exactly one: High | Medium | Low — judged for THIS issue alone:
@@ -46,8 +52,13 @@ DECISION RULES
    (b) the user reports many repeated failed attempts (roughly 5+, e.g. "tried 5-6 times",
    "keeps failing every time", "several attempts") — sustained failure across many tries is
    a stronger signal than an ordinary one-off lockout, even without a security keyword.
-6. On low information, emit a single issue with the most likely broad category, priority
-   Low/Medium, routed to Tier-1 Support, and say detail is needed in "reasoning".
+6. On low information but still plausibly a real support message (e.g. "it's not working"),
+   emit a single issue with the most likely broad category, priority Low/Medium, routed to
+   Tier-1 Support, and say detail is needed in "reasoning".
+7. If the message is NOT a support request at all (meaningless characters/numbers, or a
+   real question unrelated to this product/account/service), emit a single issue with
+   category "Out of Scope", priority Low, team Tier-1 Support, confidence High (be
+   confident it's out of scope, don't mark this a guess), and say why in "reasoning".
 
 Output shape — a single issue:
 {"issues":[{"id":1,"category":"...","priority":"...","assigned_team":"...","reasoning":"...","confidence":"..."}]}
@@ -85,6 +96,21 @@ FEW_SHOT_EXAMPLES = [
         "it's not working",
         '{"issues":[{"id":1,"category":"Technical Issue","priority":"Medium","assigned_team":"Tier-1 Support",'
         '"reasoning":"Vague fault report; routed to Tier-1 to gather detail.","confidence":"Low"}]}',
+    ),
+    (
+        "438639",
+        '{"issues":[{"id":1,"category":"Out of Scope","priority":"Low","assigned_team":"Tier-1 Support",'
+        '"reasoning":"Meaningless number with no support-related content.","confidence":"High"}]}',
+    ),
+    (
+        "What is an LLM?",
+        '{"issues":[{"id":1,"category":"Out of Scope","priority":"Low","assigned_team":"Tier-1 Support",'
+        '"reasoning":"General knowledge question unrelated to this product or account.","confidence":"High"}]}',
+    ),
+    (
+        "What are your business hours?",
+        '{"issues":[{"id":1,"category":"General Inquiry","priority":"Low","assigned_team":"Tier-1 Support",'
+        '"reasoning":"Genuine but low-detail question about the service itself.","confidence":"High"}]}',
     ),
     (
         "THIRD time I've contacted you and NOBODY helps!!",

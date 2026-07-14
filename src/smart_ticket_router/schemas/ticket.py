@@ -11,6 +11,7 @@ class Category(str, Enum):
     FEATURE_REQUEST = "Feature Request"
     COMPLAINT = "Complaint"
     GENERAL_INQUIRY = "General Inquiry"
+    OUT_OF_SCOPE = "Out of Scope"
 
 
 class Priority(str, Enum):
