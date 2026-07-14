@@ -38,23 +38,25 @@ def route_via_api(text: str, base_url: str) -> dict:
 
 
 def render_result(ticket_text: str, result: dict, elapsed: float) -> None:
-    priority = result.get("priority", "?")
+    issues = result.get("issues") or [{}]
+    primary, others = issues[0], issues[1:]
+    priority = primary.get("priority", "?")
     color = PRIORITY_COLOR.get(priority, "white")
 
     body = (
-        f"[bold]Category:[/bold]      {result.get('category')}\n"
+        f"[bold]Category:[/bold]      {primary.get('category')}\n"
         f"[bold]Priority:[/bold]      [{color}]{priority}[/{color}]\n"
-        f"[bold]Assigned team:[/bold] {result.get('assigned_team')}\n"
-        f"[bold]Reasoning:[/bold]     {result.get('reasoning')}"
+        f"[bold]Assigned team:[/bold] {primary.get('assigned_team')}\n"
+        f"[bold]Reasoning:[/bold]     {primary.get('reasoning')}"
     )
-    for issue in result.get("other_issues") or []:
+    for issue in others:
         issue_color = PRIORITY_COLOR.get(issue.get("priority"), "white")
         body += (
             f"\n[bold]Other issue:[/bold]    {issue.get('category')} "
             f"[{issue_color}]({issue.get('priority')})[/{issue_color}]"
         )
-    if result.get("confidence"):
-        body += f"\n[bold]Confidence:[/bold]     {result['confidence']}"
+    if primary.get("confidence"):
+        body += f"\n[bold]Confidence:[/bold]     {primary['confidence']}"
 
     console.print(Panel(body, title=f'"{ticket_text[:60]}"', subtitle=f"{elapsed*1000:.0f} ms"))
     console.print(Panel(json.dumps(result, indent=2), title="raw JSON", border_style="dim"))
@@ -116,14 +118,15 @@ def cmd_demo(args: argparse.Namespace) -> None:
         total_elapsed += elapsed_ms
         routed_count += 1
 
-        priority = result.get("priority", "?")
+        primary = (result.get("issues") or [{}])[0]
+        priority = primary.get("priority", "?")
         color = PRIORITY_COLOR.get(priority, "white")
         table.add_row(
             str(i),
             text[:40],
-            result.get("category", "?"),
+            primary.get("category", "?"),
             f"[{color}]{priority}[/{color}]",
-            result.get("assigned_team", "?"),
+            primary.get("assigned_team", "?"),
             f"{elapsed_ms:.0f}",
         )
 

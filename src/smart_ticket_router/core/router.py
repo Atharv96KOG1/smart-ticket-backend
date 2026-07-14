@@ -1,5 +1,6 @@
 import json
 import logging
+import time
 
 from pydantic import ValidationError
 
@@ -16,7 +17,7 @@ from smart_ticket_router.llm.exceptions import (
     LLMConnectionError,
     LLMRateLimitError,
 )
-from smart_ticket_router.schemas.ticket import SAFE_FALLBACK, TicketRoute
+from smart_ticket_router.schemas.ticket import SAFE_FALLBACK, Priority, TicketRoute
 
 logger = logging.getLogger("smart_ticket_router")
 
@@ -41,6 +42,7 @@ def route_ticket(raw_text: str) -> TicketRoute:
     a malformed/unreliable model response; only raises for blank input or a hard
     provider failure (auth/rate-limit/connection), which callers surface as clean errors.
     """
+    start = time.perf_counter()
     cleaned_text, was_truncated = prepare_ticket_text(raw_text)
     if was_truncated:
         logger.info("Ticket truncated by head/tail guardrail (over %d chars).", len(raw_text))
@@ -58,14 +60,21 @@ def route_ticket(raw_text: str) -> TicketRoute:
             logger.warning("Attempt %d failed validation: %s", attempt + 1, retry_error)
             continue
 
-        final_priority = billing_priority_floor(route.category.value, route.priority.value)
-        final_priority = escalation_override(raw_text, final_priority)
-        if final_priority != route.priority.value:
-            route = route.model_copy(update={"priority": final_priority})
-        return route
+        updated_issues = []
+        for i, issue in enumerate(route.issues):
+            final_priority = billing_priority_floor(issue.category.value, issue.priority.value)
+            if i == 0:  # raw-text hard signals describe the ticket overall, so only the
+                final_priority = escalation_override(raw_text, final_priority)  # primary issue is escalated by them
+            if final_priority != issue.priority.value:
+                issue = issue.model_copy(update={"priority": Priority(final_priority)})
+            updated_issues.append(issue)
+
+        elapsed_ms = int((time.perf_counter() - start) * 1000)
+        return route.model_copy(update={"issues": updated_issues, "processing_time_ms": elapsed_ms})
 
     logger.error("Both attempts failed validation; returning safe fallback.")
-    return SAFE_FALLBACK.model_copy()
+    elapsed_ms = int((time.perf_counter() - start) * 1000)
+    return SAFE_FALLBACK.model_copy(update={"processing_time_ms": elapsed_ms})
 
 
 __all__ = [

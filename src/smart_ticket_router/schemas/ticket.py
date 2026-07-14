@@ -34,28 +34,33 @@ class Confidence(str, Enum):
     LOW = "Low"
 
 
-class OtherIssue(BaseModel):
-    category: Category
-    priority: Priority
-
-    model_config = {"extra": "forbid"}
-
-
-class TicketRoute(BaseModel):
+class Issue(BaseModel):
+    id: int
     category: Category
     priority: Priority
     assigned_team: Team
     reasoning: str = Field(max_length=200)
-    other_issues: list[OtherIssue] = Field(default_factory=list)
     confidence: Confidence | None = None
 
     model_config = {"extra": "forbid"}
 
 
+class TicketRoute(BaseModel):
+    issues: list[Issue] = Field(min_length=1)
+    processing_time_ms: int = 0
+
+    model_config = {"extra": "forbid"}
+
+
 SAFE_FALLBACK = TicketRoute(
-    category=Category.GENERAL_INQUIRY,
-    priority=Priority.MEDIUM,
-    assigned_team=Team.TIER_1_SUPPORT,
-    reasoning="Automatic routing failed validation; escalated to Tier-1 for manual triage.",
-    confidence=Confidence.LOW,
+    issues=[
+        Issue(
+            id=1,
+            category=Category.GENERAL_INQUIRY,
+            priority=Priority.MEDIUM,
+            assigned_team=Team.TIER_1_SUPPORT,
+            reasoning="Automatic routing failed validation; escalated to Tier-1 for manual triage.",
+            confidence=Confidence.LOW,
+        )
+    ],
 )

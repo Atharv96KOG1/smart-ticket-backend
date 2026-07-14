@@ -48,6 +48,16 @@ def prepare_ticket_text(raw: str, max_chars: int = MAX_TICKET_CHARS) -> tuple[st
 # Deterministic escalation-only rule: can only RAISE priority, never lower it,
 # and only on hard signals — never on tone alone. Payment/billing signals are
 # listed first since any money-at-risk issue is always High.
+# NOTE: plain "can't log in" is deliberately excluded — a single user's login
+# lockout defaults to Medium (blocked work for one person, not widespread). It
+# only escalates via the security signals below (suspicious login, breach,
+# data loss), i.e. the edge case, not the common case.
+# NOTE: bare, ambiguous single words are deliberately excluded even though they
+# sound like hard signals — "refund" (matches refund-policy questions), "breach"
+# (matches "breach of contract"), "unauthorized" (matches unrelated permission
+# bugs) all substring-matched into unrelated tickets and forced them to High
+# regardless of actual severity, overriding the model's own correct judgment.
+# Only multi-word phrases specific enough to not misfire are listed.
 _ESCALATION_SIGNALS = (
     "charged twice",
     "double charged",
@@ -56,17 +66,16 @@ _ESCALATION_SIGNALS = (
     "unauthorized charge",
     "unauthorized transaction",
     "payment failed",
-    "refund",
     "money left my account",
-    "can't log in",
-    "cannot log in",
-    "can't access my account",
     "data loss",
     "data is missing",
-    "breach",
+    "data corrupted",
+    "corrupted data",
+    "data got corrupted",
+    "lost all my data",
+    "data breach",
     "security breach",
     "suspicious login",
-    "unauthorized",
 )
 
 
