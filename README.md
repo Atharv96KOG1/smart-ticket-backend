@@ -1,16 +1,24 @@
 # Smart Ticket Router
 
-Reads a raw support message and returns a validated, schema-conformant routing
-decision — category, priority, assigned team, one-line reasoning — with
-deterministic tie-breaking and a defense-in-depth reliability layer around the LLM
-call.
+Reads a raw support message — which may describe more than one problem — and
+returns a flat, validated list of every distinct issue found, each fully
+classified: category, priority, assigned team, one-line reasoning. Deterministic
+tie-breaking and a defense-in-depth reliability layer sit around the one
+unreliable step, the LLM call.
 
 ```json
 {
-  "category": "Billing",
-  "priority": "High",
-  "assigned_team": "Billing Team",
-  "reasoning": "Customer was double-charged and requests an urgent refund."
+  "issues": [
+    {
+      "id": 1,
+      "category": "Billing",
+      "priority": "High",
+      "assigned_team": "Billing Team",
+      "reasoning": "Customer was double-charged and requests an urgent refund.",
+      "confidence": "High"
+    }
+  ],
+  "processing_time_ms": 1466
 }
 ```
 
@@ -42,17 +50,26 @@ rule — is ordinary code wrapping that one unreliable call.
 - **Payment/billing issue? Always High.** Charges, refunds, failed payments,
   unauthorized transactions — money at risk is never downgraded to Medium or Low,
   regardless of tone. This is rule 1, checked before anything else.
-- **Two categories fit?** Route by blocking root cause, then a fixed precedence
-  order: billing (payment) > security access > login access > bug > technical >
-  complaint > feature > general. The loser goes in `secondary_category`, never
-  discarded.
-- **Multiple issues, different urgency?** Priority = the **highest**, never the
-  average — under-prioritizing a real High ticket is far costlier than
-  over-prioritizing a Low one.
-- **Anger alone doesn't raise priority** — only impact does (money, downtime,
-  security, blocked work). A small deterministic post-rule in `guardrails.py` can
-  only *raise* priority on hard signals (payment/refund language, "data loss",
-  "suspicious login", ...), never lower it — a safety net over the model.
+- **Multiple distinct issues in one message?** Emit one fully-classified issue
+  per problem — never merge or drop one. `id=1` is the primary/blocking issue,
+  chosen by a fixed precedence order when it's ambiguous (billing > security
+  access > login access > bug > technical > complaint > feature > general).
+  The rest are ordered by their own priority, highest first.
+- **Each issue's priority is judged independently** — one issue's urgency never
+  inflates another's. A login lockout affecting one user is Medium by default,
+  escalating to High only via a real security signal or many repeated failures
+  (not just an angry tone).
+- **Not a real support request at all?** Meaningless input (e.g. a bare number)
+  or a genuine question unrelated to the product (e.g. "what is an LLM") gets
+  its own category, `Out of Scope` — always Low priority, Tier-1 Support, and
+  **high** confidence (the model should be sure it's out of scope, not
+  guessing). This is kept separate from `General Inquiry`, which means a
+  genuine but vague question *about the product* ("what are your business
+  hours?").
+- A small deterministic post-rule in `guardrails.py` can only *raise* the
+  primary issue's priority on hard signals (duplicate charges, data loss,
+  suspicious login, ...), never lower it — a safety net over the model, not a
+  substitute for its judgment.
 
 ## Setup
 
@@ -87,6 +104,19 @@ curl -X POST localhost:8000/route -H "content-type: application/json" \
 
 Interactive API docs: `http://127.0.0.1:8000/docs`
 
+## Testing
+
+```bash
+pip install -r requirements-dev.txt
+pytest
+```
+
+Covers the guardrails (blank/truncation/escalation rules), schema validation,
+the parse→validate→retry→fallback pipeline in `core/router.py`, the LLM
+client's retry/backoff behavior (rate limits, timeouts, auth), and the API's
+error→HTTP-status mapping. Everything is mocked at the OpenAI client boundary,
+so the suite runs fully offline with no API key or network access required.
+
 ## Frontend
 
 The web UI lives in a separate repo (`smart-ticket-frontend`) and talks to this
@@ -108,9 +138,9 @@ reaches the caller.
 |---|---|
 | Blank input | Rejected client-side in the CLI before any call is made; server re-checks too |
 | Oversized message | `guardrails.py` strips quoted email threads, then keeps head+tail (never blind-truncates) |
-| Ambiguous / two categories | Prompt precedence rule + `secondary_category` field |
-| Multi-issue priority | Prompt take-the-highest rule |
-| Angry tone, no real impact | Prompt rule 3 — tone alone never raises priority |
+| Multiple distinct issues in one message | Flat `issues[]` list — one fully-classified entry per issue, primary first |
+| Ambiguous / not a real ticket | Dedicated `Out of Scope` category, separate from genuine `General Inquiry` |
+| Angry tone, no real impact | Prompt rule — tone alone never raises priority for that issue |
 | Bad API key / rate limit / network drop | `llm/client.py` raises typed errors → clean HTTP status / CLI message, never a crash |
 | Rate limit hit mid-request | Retried with exponential backoff (respecting `Retry-After` if provided) before surfacing a 429 |
 
@@ -135,7 +165,9 @@ backend/
 │           ├── ticket.py       Pydantic contract (category/priority/team enums)
 │           └── requests.py     API request body
 ├── cli.py                     CLI (direct or --api mode)
+├── tests/                     pytest suite (guardrails, schema, router, llm client, API)
 ├── data/sample_tickets.json   20-ticket demo set
 ├── .env.example
-└── requirements.txt
+├── requirements.txt
+└── requirements-dev.txt       adds pytest
 ```

@@ -25,9 +25,9 @@ def head_tail_trim(text: str, budget: int) -> tuple[str, bool]:
     if len(text) <= budget:
         return text, False
     head_len = int(budget * 0.7)
-    tail_len = budget - head_len - len(_ELISION)
-    tail_len = max(tail_len, 0)
-    return text[:head_len] + _ELISION + text[-tail_len:], True
+    tail_len = max(budget - head_len - len(_ELISION), 0)
+    tail = text[-tail_len:] if tail_len > 0 else ""
+    return text[:head_len] + _ELISION + tail, True
 
 
 def prepare_ticket_text(raw: str, max_chars: int = MAX_TICKET_CHARS) -> tuple[str, bool]:
