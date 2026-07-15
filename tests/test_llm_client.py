@@ -14,7 +14,9 @@ _REQUEST = httpx.Request("POST", "https://api.openai.com/v1/chat/completions")
 
 
 def _response(status_code: int, headers: dict | None = None) -> httpx.Response:
-    return httpx.Response(status_code=status_code, headers=headers or {}, request=_REQUEST)
+    return httpx.Response(
+        status_code=status_code, headers=headers or {}, request=_REQUEST
+    )
 
 
 class _FakeCompletions:
@@ -96,11 +98,15 @@ def test_call_llm_retries_rate_limit_then_succeeds(monkeypatch):
 
 def test_call_llm_honors_retry_after_header(monkeypatch):
     sleeps = []
-    monkeypatch.setattr(client_module.time, "sleep", lambda seconds: sleeps.append(seconds))
+    monkeypatch.setattr(
+        client_module.time, "sleep", lambda seconds: sleeps.append(seconds)
+    )
     _install_fake_client(
         monkeypatch,
         [
-            openai.RateLimitError("slow down", response=_response(429, {"retry-after": "3"}), body=None),
+            openai.RateLimitError(
+                "slow down", response=_response(429, {"retry-after": "3"}), body=None
+            ),
             _fake_success('{"issues":[]}'),
         ],
     )
@@ -152,3 +158,56 @@ def test_call_llm_without_api_key_raises_auth_error(monkeypatch):
 
     with pytest.raises(LLMAuthError):
         call_llm([{"role": "user", "content": "hi"}])
+
+
+def test_call_llm_falls_back_to_backoff_on_non_numeric_retry_after_header(monkeypatch):
+    sleeps = []
+    monkeypatch.setattr(
+        client_module.time, "sleep", lambda seconds: sleeps.append(seconds)
+    )
+    _install_fake_client(
+        monkeypatch,
+        [
+            openai.RateLimitError(
+                "slow down",
+                response=_response(429, {"retry-after": "not-a-number"}),
+                body=None,
+            ),
+            _fake_success('{"issues":[]}'),
+        ],
+    )
+
+    call_llm([{"role": "user", "content": "hi"}])
+
+    assert sleeps == [0.5]  # exponential backoff for attempt 0, not the bad header
+
+
+def test_call_llm_returns_empty_string_when_content_is_none(monkeypatch):
+    _install_fake_client(monkeypatch, [_fake_success(None)])
+
+    result = call_llm([{"role": "user", "content": "hi"}])
+
+    assert result == ""
+
+
+def test_call_llm_sends_expected_request_kwargs(monkeypatch):
+    captured = {}
+
+    class _CapturingCompletions:
+        def create(self, **kwargs):
+            captured.update(kwargs)
+            return _fake_success('{"issues":[]}')
+
+    fake = _FakeClient([])
+    fake.chat = _FakeChat(_CapturingCompletions())
+    monkeypatch.setattr(client_module, "_client", lambda: fake)
+
+    call_llm([{"role": "user", "content": "hi"}])
+
+    assert captured["temperature"] == 0
+    assert captured["response_format"] == {"type": "json_object"}
+    assert captured["messages"][0] == {
+        "role": "system",
+        "content": client_module.SYSTEM_PROMPT,
+    }
+    assert captured["messages"][1] == {"role": "user", "content": "hi"}

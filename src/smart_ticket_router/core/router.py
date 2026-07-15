@@ -45,7 +45,9 @@ def route_ticket(raw_text: str) -> TicketRoute:
     start = time.perf_counter()
     cleaned_text, was_truncated = prepare_ticket_text(raw_text)
     if was_truncated:
-        logger.info("Ticket truncated by head/tail guardrail (over %d chars).", len(raw_text))
+        logger.info(
+            "Ticket truncated by head/tail guardrail (over %d chars).", len(raw_text)
+        )
 
     retry_error: str | None = None
     for attempt in range(2):  # one shot + one repair retry
@@ -62,15 +64,21 @@ def route_ticket(raw_text: str) -> TicketRoute:
 
         updated_issues = []
         for i, issue in enumerate(route.issues):
-            final_priority = billing_priority_floor(issue.category.value, issue.priority.value)
+            final_priority = billing_priority_floor(
+                issue.category.value, issue.priority.value
+            )
             if i == 0:  # raw-text hard signals describe the ticket overall, so only the
-                final_priority = escalation_override(raw_text, final_priority)  # primary issue is escalated by them
+                final_priority = escalation_override(
+                    raw_text, final_priority
+                )  # primary issue is escalated by them
             if final_priority != issue.priority.value:
                 issue = issue.model_copy(update={"priority": Priority(final_priority)})
             updated_issues.append(issue)
 
         elapsed_ms = int((time.perf_counter() - start) * 1000)
-        return route.model_copy(update={"issues": updated_issues, "processing_time_ms": elapsed_ms})
+        return route.model_copy(
+            update={"issues": updated_issues, "processing_time_ms": elapsed_ms}
+        )
 
     logger.error("Both attempts failed validation; returning safe fallback.")
     elapsed_ms = int((time.perf_counter() - start) * 1000)

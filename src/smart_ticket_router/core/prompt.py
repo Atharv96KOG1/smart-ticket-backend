@@ -84,7 +84,7 @@ FEW_SHOT_EXAMPLES = [
         '"confidence":"High"},'
         '{"id":2,"category":"Billing","priority":"Medium","assigned_team":"Billing Team",'
         '"reasoning":"Invoice looks wrong; needs review but not money-at-risk.","confidence":"Medium"}'
-        ']}',
+        "]}",
     ),
     (
         "I've tried logging in 5-6 times now and it still says invalid credentials",
@@ -125,7 +125,7 @@ FEW_SHOT_EXAMPLES = [
         '"reasoning":"Repeated payment failures are money at risk.","confidence":"High"},'
         '{"id":2,"category":"Technical Issue","priority":"Medium","assigned_team":"Technical Support",'
         '"reasoning":"Networking issue affects usability but no money/security risk.","confidence":"Medium"}'
-        ']}',
+        "]}",
     ),
     (
         "payment failed multiple times, can't log in either, and the app keeps crashing",
@@ -136,7 +136,7 @@ FEW_SHOT_EXAMPLES = [
         '"reasoning":"Login block affects this one user, not a widespread outage.","confidence":"High"},'
         '{"id":3,"category":"Bug Report","priority":"Medium","assigned_team":"Engineering",'
         '"reasoning":"App crashing is degraded but usable around.","confidence":"Medium"}'
-        ']}',
+        "]}",
     ),
 ]
 
