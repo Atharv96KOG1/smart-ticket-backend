@@ -31,7 +31,9 @@ def test_issue_confidence_is_optional():
     assert issue.confidence is None
 
 
-@pytest.mark.parametrize("missing_field", ["category", "priority", "assigned_team", "reasoning"])
+@pytest.mark.parametrize(
+    "missing_field", ["category", "priority", "assigned_team", "reasoning"]
+)
 def test_issue_requires_core_fields(missing_field):
     payload = {k: v for k, v in VALID_ISSUE.items() if k != missing_field}
     with pytest.raises(ValidationError):
@@ -53,6 +55,11 @@ def test_issue_reasoning_rejects_over_200_chars():
         Issue.model_validate({**VALID_ISSUE, "reasoning": "x" * 201})
 
 
+def test_issue_reasoning_accepts_exactly_200_chars():
+    issue = Issue.model_validate({**VALID_ISSUE, "reasoning": "x" * 200})
+    assert len(issue.reasoning) == 200
+
+
 def test_ticket_route_requires_at_least_one_issue():
     with pytest.raises(ValidationError):
         TicketRoute.model_validate({"issues": []})
@@ -60,7 +67,17 @@ def test_ticket_route_requires_at_least_one_issue():
 
 def test_ticket_route_accepts_multiple_issues():
     route = TicketRoute.model_validate(
-        {"issues": [VALID_ISSUE, {**VALID_ISSUE, "id": 2, "category": "Technical Issue", "assigned_team": "Technical Support"}]}
+        {
+            "issues": [
+                VALID_ISSUE,
+                {
+                    **VALID_ISSUE,
+                    "id": 2,
+                    "category": "Technical Issue",
+                    "assigned_team": "Technical Support",
+                },
+            ]
+        }
     )
     assert len(route.issues) == 2
     assert route.processing_time_ms == 0

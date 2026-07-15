@@ -13,7 +13,9 @@ from smart_ticket_router.llm.exceptions import (
 
 def _client() -> openai.OpenAI:
     if not OPENAI_API_KEY:
-        raise LLMAuthError("OPENAI_API_KEY is not set. Copy .env.example to .env and add your key.")
+        raise LLMAuthError(
+            "OPENAI_API_KEY is not set. Copy .env.example to .env and add your key."
+        )
     return openai.OpenAI(api_key=OPENAI_API_KEY)
 
 

@@ -69,10 +69,51 @@ def test_route_maps_each_error_to_its_http_status(monkeypatch, exc, expected_sta
 
 def test_route_rejects_message_over_max_length():
     res = client.post("/route", json={"message": "x" * 8001})
-    assert res.status_code == 422  # request-validation failure, before route_ticket runs
+    assert (
+        res.status_code == 422
+    )  # request-validation failure, before route_ticket runs
+
+
+def test_route_accepts_message_at_exact_max_length_boundary(monkeypatch):
+    fake_route = TicketRoute.model_validate(
+        {
+            "issues": [
+                {
+                    "id": 1,
+                    "category": "General Inquiry",
+                    "priority": "Medium",
+                    "assigned_team": "Tier-1 Support",
+                    "reasoning": "Long message.",
+                    "confidence": "Medium",
+                }
+            ]
+        }
+    )
+    monkeypatch.setattr(routes_module, "route_ticket", lambda message: fake_route)
+
+    res = client.post("/route", json={"message": "x" * 8000})
+
+    assert res.status_code == 200
+
+
+def test_route_rejects_missing_message_field():
+    res = client.post("/route", json={})
+    assert res.status_code == 422
+
+
+def test_route_with_blank_message_returns_400_through_real_pipeline():
+    # No monkeypatch: blank input is rejected by the guardrails before any
+    # LLM call is attempted, so this exercises the real route_ticket path.
+    res = client.post("/route", json={"message": "   "})
+    assert res.status_code == 400
 
 
 def test_data_mount_serves_sample_tickets():
     res = client.get("/data/sample_tickets.json")
     assert res.status_code == 200
     assert isinstance(res.json(), list)
+
+
+def test_data_mount_returns_404_for_nonexistent_file():
+    res = client.get("/data/does_not_exist.json")
+    assert res.status_code == 404

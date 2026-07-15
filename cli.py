@@ -33,7 +33,9 @@ def route_direct(text: str) -> dict:
 def route_via_api(text: str, base_url: str) -> dict:
     resp = httpx.post(f"{base_url}/route", json={"message": text}, timeout=30)
     if resp.status_code >= 400:
-        raise RuntimeError(f"API error {resp.status_code}: {resp.json().get('detail', resp.text)}")
+        raise RuntimeError(
+            f"API error {resp.status_code}: {resp.json().get('detail', resp.text)}"
+        )
     return resp.json()
 
 
@@ -58,8 +60,12 @@ def render_result(ticket_text: str, result: dict, elapsed: float) -> None:
     if primary.get("confidence"):
         body += f"\n[bold]Confidence:[/bold]     {primary['confidence']}"
 
-    console.print(Panel(body, title=f'"{ticket_text[:60]}"', subtitle=f"{elapsed*1000:.0f} ms"))
-    console.print(Panel(json.dumps(result, indent=2), title="raw JSON", border_style="dim"))
+    console.print(
+        Panel(body, title=f'"{ticket_text[:60]}"', subtitle=f"{elapsed * 1000:.0f} ms")
+    )
+    console.print(
+        Panel(json.dumps(result, indent=2), title="raw JSON", border_style="dim")
+    )
 
 
 def cmd_route(args: argparse.Namespace) -> None:
@@ -135,8 +141,8 @@ def cmd_demo(args: argparse.Namespace) -> None:
     manual_seconds_low, manual_seconds_high = 30 * routed_count, 90 * routed_count
     console.print(
         Panel(
-            f"AI routed {routed_count} tickets in {total_elapsed/1000:.2f}s "
-            f"(avg {total_elapsed/max(routed_count,1):.0f} ms/ticket).\n"
+            f"AI routed {routed_count} tickets in {total_elapsed / 1000:.2f}s "
+            f"(avg {total_elapsed / max(routed_count, 1):.0f} ms/ticket).\n"
             f"Manual triage of the same {routed_count} tickets would take an estimated "
             f"{manual_seconds_low}-{manual_seconds_high}s (~30-90s/ticket).",
             title="Before / After",
@@ -147,8 +153,14 @@ def cmd_demo(args: argparse.Namespace) -> None:
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="Smart Ticket Router CLI")
-    parser.add_argument("--api", action="store_true", help="call a running FastAPI server instead of routing in-process")
-    parser.add_argument("--url", default="http://127.0.0.1:8000", help="FastAPI base URL (with --api)")
+    parser.add_argument(
+        "--api",
+        action="store_true",
+        help="call a running FastAPI server instead of routing in-process",
+    )
+    parser.add_argument(
+        "--url", default="http://127.0.0.1:8000", help="FastAPI base URL (with --api)"
+    )
     sub = parser.add_subparsers(dest="command", required=True)
 
     sub.add_parser("route", help="interactively route a single ticket")

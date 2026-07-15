@@ -22,6 +22,22 @@ def test_strip_quoted_thread_removes_reply_header():
     assert "Still broken." in result
 
 
+def test_strip_quoted_thread_removes_multiple_quoted_blocks():
+    text = (
+        "Latest reply, still an issue.\n"
+        "On Mon, Jan 1, 2030 at 9:00 AM Support wrote:\n"
+        "> first agent reply\n"
+        "> more of the first reply\n"
+        "On Tue, Jan 2, 2030 at 10:00 AM Customer wrote:\n"
+        "> the original message\n"
+        "> more of the original message"
+    )
+    result = strip_quoted_thread(text)
+    assert result == "Latest reply, still an issue."
+    assert "wrote:" not in result
+    assert ">" not in result
+
+
 def test_head_tail_trim_no_truncation_under_budget():
     text = "short message"
     result, truncated = head_tail_trim(text, budget=100)
@@ -33,7 +49,9 @@ def test_head_tail_trim_truncates_over_budget():
     text = "head" * 100 + "tail" * 100  # 800 distinguishable chars, well over budget
     result, truncated = head_tail_trim(text, budget=400)
     assert truncated is True
-    assert len(result) <= 400 + len("\n\n[... middle of message elided — routed on head + tail ...]\n\n")
+    assert len(result) <= 400 + len(
+        "\n\n[... middle of message elided — routed on head + tail ...]\n\n"
+    )
     assert result.startswith("head")
     assert result.endswith("tail")
 
@@ -46,7 +64,9 @@ def test_head_tail_trim_with_a_budget_smaller_than_the_elision_marker():
     text = "a" * 500
     result, truncated = head_tail_trim(text, budget=10)
     assert truncated is True
-    assert len(result) <= 10 + len("\n\n[... middle of message elided — routed on head + tail ...]\n\n")
+    assert len(result) <= 10 + len(
+        "\n\n[... middle of message elided — routed on head + tail ...]\n\n"
+    )
 
 
 def test_prepare_ticket_text_raises_on_blank():
@@ -67,6 +87,17 @@ def test_prepare_ticket_text_truncates_over_max_chars():
     cleaned, truncated = prepare_ticket_text("b" * 3000, max_chars=2000)
     assert truncated is True
     assert len(cleaned) < 3000
+
+
+def test_prepare_ticket_text_uses_config_default_when_max_chars_omitted():
+    from smart_ticket_router.config import MAX_TICKET_CHARS
+
+    cleaned, truncated = prepare_ticket_text("c" * (MAX_TICKET_CHARS + 500))
+    assert truncated is True
+    assert len(cleaned) < MAX_TICKET_CHARS + 500
+
+    cleaned, truncated = prepare_ticket_text("short enough")
+    assert truncated is False
 
 
 @pytest.mark.parametrize(
