@@ -82,6 +82,17 @@ cp .env.example .env
 # edit .env and paste your real OPENAI_API_KEY
 ```
 
+`requirements.txt` pins loose (`>=`) ranges for readability; for a fully
+reproducible install (CI, a fresh machine) use the generated lockfile
+instead:
+
+```bash
+pip install -r requirements.lock.txt
+```
+
+Regenerate it after changing `requirements.txt` with `pip-compile
+requirements.txt -o requirements.lock.txt` (`pip install pip-tools` first).
+
 ## Run it
 
 **CLI, no server needed** (imports the router directly):
