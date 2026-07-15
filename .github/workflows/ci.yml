@@ -10,12 +10,21 @@ jobs:
   test-and-lint:
     runs-on: ubuntu-latest
 
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.11", "3.12", "3.13"]
+
     steps:
       - uses: actions/checkout@v4
 
       - uses: actions/setup-python@v5
         with:
-          python-version: "3.12"
+          python-version: ${{ matrix.python-version }}
+          cache: "pip"
+          cache-dependency-path: |
+            requirements.txt
+            requirements-dev.txt
 
       - name: Install dependencies
         run: |
@@ -29,5 +38,5 @@ jobs:
       - name: Format check (ruff format)
         run: ruff format --check .
 
-      - name: Run tests
-        run: python -m pytest -q
+      - name: Run tests with coverage
+        run: python -m pytest -q --cov=smart_ticket_router --cov-report=term-missing
